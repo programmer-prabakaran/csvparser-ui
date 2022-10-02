@@ -1,0 +1,40 @@
+.App {
+  text-align: center;
+}
+
+.header {
+  color: #fff;
+  text-align: center;
+}
+
+.content {
+  min-height: 85vh;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.footer {
+  text-align: center;
+}
+
+.home-container {
+  width: 80%;
+  min-height: 90vh;
+  border: 1px solid #000;
+  border-radius: 15px;
+  padding: 10px;
+}
+
+.home-container .ant-tabs {
+  min-height: 100vh;
+}
+
+.upload-cntr {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
