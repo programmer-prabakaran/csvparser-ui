@@ -1,41 +1,19 @@
 import { UploadOutlined } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
-import { Button, Upload, message, Progress  } from 'antd';
+import { notification, message, Progress, List } from 'antd';
 
 import axios from 'axios';
 
-import {useState} from 'react'
+import {useState, useRef} from 'react'
 
 function FileUpload() {
 
-    const[file, setFile] = useState<any>(null);
-    const[percent, setPercent] = useState(0);
-    const[progressStatus, status] = useState('active')
+    const ref = useRef<any>(null)
 
-    const props: UploadProps = {
-        name: 'file',
-        action: 'http://localhost:8080/api/upload',
-        headers: {
-            "Content-type": "multipart/form-data; boundary=AaB03x--AaB03x",
-            "Access-Control-Allow-Origin": '*',
-            "Accept": "text/csv",
-            "Content-Disposition": "file"
-        },
-        onChange(info: any) {
-          console.log("file details",info)
-          setFile(info?.file)
-          setPercent(50)
-          uploadFile(info?.file)
-        },
-        accept: 'text/csv,.csv',
-        multiple: false,
-        maxCount: 1,
-        onRemove() {
-            setPercent(0)
-        }
-    };
+    const[percent, setPercent] = useState(0);
 
     const uploadFile = (file: any) => {
+        message.info("File processing....")
         const formData = new FormData();
         formData.append('file',file)
 
@@ -44,26 +22,55 @@ function FileUpload() {
         }}).then(res => {
             console.log(res)
             if(res?.data?.status) {
-                message.success(res?.data?.message)
+                message.success(res?.data?.message+" "+res?.data?.response?.totalRecords+" records added in DB.")
                 setPercent(100)
             } else {
-                message.error(res?.data?.message)
+                notification.error({
+                    message: 'Error',
+                    description: res?.data?.message,
+                    placement: 'top'
+                })
+                setPercent(0)
             }
         }).catch(err => {
-            message.error(err)
+            notification.error({
+                message: 'Error',
+                description: err?.message,
+                placement: 'top'
+            })
+            setPercent(0)
         })
+    }
+
+    const fileUpload = (e: any) => {
+        const file = e?.target?.files[0];
+
+        if(file?.type === "text/csv") {
+            setPercent(50)
+            message.info("File Uploading.....")
+            uploadFile(file)
+        } else {
+            message.error("File format is not valid");
+        }
     }
 
     return (
         <section className='upload-cntr'>
-            <Upload {...props} beforeUpload={(file) => {
-                if(file.type !== 'text/csv') {
-                    message.error("File type not supported")
-                }
-                return false
-            }} multiple={false}>
-                <Button icon={<UploadOutlined />}>Click to Upload</Button>
-            </Upload>
+            <List
+                bordered
+                dataSource={[
+                    'Max File Size is 50 MB',
+                    'File Format should be .csv',
+                    'File contains with headers like InvoiceNo, StockCode, Description, Quantity, InvoiceDate, UnitPrice, CustomerID and Country'
+                ]}
+                renderItem={item => (
+                    <List.Item>
+                        {item}
+                    </List.Item>
+                )}
+            />
+            <input ref={ref} type='file' name='file' id='file-upload' accept='.csv' onChange={fileUpload}/>
+            
             <Progress style={{marginTop: '30px'}} type="circle" percent={percent} />
         </section>
     )
