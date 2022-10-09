@@ -1,8 +1,11 @@
-import { Table, Pagination, Button, Form, Input, notification, Select  } from 'antd';
+import { Table, Pagination, Button, Form, Input, notification, Select, InputNumber, DatePicker, Collapse  } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import axios from 'axios';
 
 import {useEffect, useState} from 'react'
+import moment from 'moment';
+
+const { Panel } = Collapse;
 
 interface DataType {
     id: number,
@@ -73,11 +76,24 @@ const DataTable: React.FC = () => {
     const[totalRecords, setTotal] = useState<number>(0);
 
     const[searchEnabled, setSearch] = useState<boolean>(false);
-    const[searchType, setSearchType] = useState<any>(null);
-    const[searchKey, setSearchKey] = useState<any>(null);
+    const[searchFieldsData, setSearchFieldsData] = useState<any>(null);
 
     useEffect(() => {
         getData(page, size)
+
+        form.setFieldsValue({
+            invoiceNumber: null,
+            stockCode: null,
+            description: null,
+            quantity: null,
+            unitPrice: null,
+            customerId: null,
+            country: null,
+            invoiceDate: null,
+            quantityType: '=',
+            unitPriceType: '=',
+            invoiceDateType: '='
+        });
     }, [])
 
     function getData(page: number, size: number): void {
@@ -110,7 +126,7 @@ const DataTable: React.FC = () => {
         setSize(pageSize)
 
         if(searchEnabled) {
-            searchData(searchType, searchKey, page -1, pageSize)
+            searchData(searchFieldsData, page -1, pageSize)
         } else {
             getData(page-1, pageSize)
         }
@@ -119,27 +135,25 @@ const DataTable: React.FC = () => {
 
     const onFinish = (values: any) => {
         console.log(values);
-        setSearchType(values?.type)
-        setSearchKey(values?.keyword)
-        searchData(values?.type, values?.keyword, 0, 10)      
+        const d = {...values}
+
+        if(d?.invoiceDate != null) {
+            d['invoiceDate'] = moment(d?.invoiceDate?._d).format("yyyy-MM-DDTHH:MM:ss")
+        }
+        console.log(d);
+        setSearchFieldsData(d)
+        searchData(d, 0, 10)
     };
 
-    function searchData(type: any, keyword: String, page: number, size: number) {
-        const obj: any = {
-            "invoiceNumber": null,
-            "stockCode": null,
-            "description": null,
-            "quantity": null,
-            "unitPrice": null,
-            "customerId": null,
-            "country": null
-        }
+    const onReset = () => {
+        form.resetFields();
+        getData(0, 10)
+    }
 
-        obj[type] = keyword
-
+    function searchData(obj: any, page: number, size: number) {
         setLoading(true)
         setSearch(true)
-        axios.post("http://localhost:8080/api/search", obj, {params: {page: page, size: size}}).then(res => {
+        axios.post("http://localhost:8080/api/search/criteria", obj, {params: {page: page, size: size}}).then(res => {
             setLoading(false)
             console.log(res)
             if(res?.data?.status) {
@@ -164,41 +178,108 @@ const DataTable: React.FC = () => {
 
     return(
         <>
-            <Form
-                form={form}
-                labelCol={{ span: 8 }}
-                wrapperCol={{ span: 16 }}
-                initialValues={{ layout: 'inline' }}
-                onFinish={onFinish}
-            >
-                <Form.Item 
-                    label="Type" 
-                    name="type"
-                    rules={[{ required: true, message: 'Please input your type!' }]}
-                >
-                    <Select
-                        allowClear
+            <Collapse>
+                <Panel header="Search Fields" key="1">
+                    <Form
+                        form={form}
+                        onFinish={onFinish}
+                        labelCol={{ span: 8 }}
+                        wrapperCol={{ span: 16 }}
                     >
-                        <Option value="invoiceNumber">Invoice Number</Option>
-                        <Option value="stockCode">Stock Code</Option>
-                        <Option value="description">Description</Option>
-                        <Option value="quantity">Quantity</Option>
-                        <Option value="unitPrice">Unit Price</Option>
-                        <Option value="customerId">Customer Id</Option>
-                        <Option value="country">Country</Option>
-                    </Select>
-                </Form.Item>
-                <Form.Item 
-                    label="Keyword" 
-                    name="keyword"
-                    rules={[{ required: true, message: 'Please input your keyword!' }]}
-                >
-                    <Input placeholder="input search keyword" />
-                </Form.Item>
-                <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
-                    <Button type="primary" htmlType="submit">Search</Button>
-                </Form.Item>
-            </Form>
+                        <Form.Item 
+                            label="Invoice Number" 
+                            name="invoiceNumber"
+                        >
+                            <Input placeholder="input search keyword" />
+                        </Form.Item>
+                        <Form.Item 
+                            label="Stock Code" 
+                            name="stockCode"
+                        >
+                            <Input placeholder="input search keyword" />
+                        </Form.Item>
+                        <Form.Item 
+                            label="Description" 
+                            name="description"
+                        >
+                            <Input placeholder="input search keyword" />
+                        </Form.Item>
+                        <Form.Item 
+                            label="Quantity search type" 
+                            name="quantityType"
+                        >
+                            <Select
+                                allowClear
+                            >
+                                <Option value="=">Equals</Option>
+                                <Option value=">=">GreaterThanOrEqual</Option>
+                                <Option value="<=>">LessThanOrEqual</Option>
+                            </Select>
+                        </Form.Item>
+                        <Form.Item 
+                            label="Quantity" 
+                            name="quantity"
+                        >
+                            <InputNumber min={0} placeholder="input search keyword" />
+                        </Form.Item>
+                        <Form.Item 
+                            label="Unit price search type" 
+                            name="unitPriceType"
+                        >
+                            <Select
+                                allowClear
+                            >
+                                <Option value="=">Equals</Option>
+                                <Option value=">=">GreaterThanOrEqual</Option>
+                                <Option value="<=>">LessThanOrEqual</Option>
+                            </Select>
+                        </Form.Item>
+                        <Form.Item 
+                            label="Unit Price" 
+                            name="unitPrice"
+                        >
+                            <InputNumber min={0} placeholder="input search keyword" />
+                        </Form.Item>
+                        <Form.Item 
+                            label="Customer Id" 
+                            name="customerId"
+                        >
+                            <Input placeholder="input search keyword" />
+                        </Form.Item>
+                        <Form.Item 
+                            label="Country" 
+                            name="country"
+                        >
+                            <Input placeholder="input search keyword" />
+                        </Form.Item>
+                        <Form.Item 
+                            label="Invoice Date search type" 
+                            name="invoiceDateType"
+                        >
+                            <Select
+                                allowClear
+                            >
+                                <Option value="=">Equals</Option>
+                                <Option value=">=">GreaterThanOrEqual</Option>
+                                <Option value="<=>">LessThanOrEqual</Option>
+                            </Select>
+                        </Form.Item>
+                        <Form.Item 
+                            label="Invoice Date" 
+                            name="invoiceDate"
+                        >
+                            <DatePicker format={"yyyy-MM-DD HH:MM:ss"}/>
+                        </Form.Item>
+                        <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
+                            <Button type="primary" htmlType="submit">Search</Button>
+                            <Button htmlType="button" onClick={onReset}>
+                                Reset
+                            </Button>
+                        </Form.Item>
+                        
+                    </Form>            
+                </Panel>
+            </Collapse>
             <Table 
                 columns={columns} 
                 dataSource={data}

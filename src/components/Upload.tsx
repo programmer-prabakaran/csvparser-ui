@@ -1,18 +1,24 @@
-import { UploadOutlined } from '@ant-design/icons';
-import type { UploadProps } from 'antd';
-import { notification, message, Progress, List } from 'antd';
+
+import { notification, message, Progress, List, Space, Spin } from 'antd';
 
 import axios from 'axios';
 
-import {useState, useRef} from 'react'
+import {useState, useRef, useEffect} from 'react'
 
 function FileUpload() {
 
-    const ref = useRef<any>(null)
+    const fileInput = useRef<any>()
 
-    const[percent, setPercent] = useState(0);
+    const[percent, setPercent] = useState<number>(0);
+
+    const[isLoading, setLoad] = useState<boolean>(false);
+
+    useEffect(() => {
+        setPercent(0);
+    }, [])
 
     const uploadFile = (file: any) => {
+        setLoad(true);
         message.info("File processing....")
         const formData = new FormData();
         formData.append('file',file)
@@ -20,7 +26,7 @@ function FileUpload() {
         axios.post("http://localhost:8080/api/upload",formData, {headers: {
             'content-type': 'multipart/form-data'
         }}).then(res => {
-            console.log(res)
+            setLoad(false);
             if(res?.data?.status) {
                 message.success(res?.data?.message+" "+res?.data?.response?.totalRecords+" records added in DB.")
                 setPercent(100)
@@ -39,6 +45,7 @@ function FileUpload() {
                 placement: 'top'
             })
             setPercent(0)
+            setLoad(false);
         })
     }
 
@@ -56,6 +63,9 @@ function FileUpload() {
 
     return (
         <section className='upload-cntr'>
+            {isLoading && <Space size="middle">
+                <Spin size="large" />
+            </Space> }
             <List
                 bordered
                 dataSource={[
@@ -69,7 +79,7 @@ function FileUpload() {
                     </List.Item>
                 )}
             />
-            <input ref={ref} type='file' name='file' id='file-upload' accept='.csv' onChange={fileUpload}/>
+            <input ref={fileInput} type='file' name='file' id='file-upload' accept='.csv' onChange={fileUpload}/>
             
             <Progress style={{marginTop: '30px'}} type="circle" percent={percent} />
         </section>
